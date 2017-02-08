@@ -1,19 +1,23 @@
 
-#ifndef MY_GL_H_
-#define MY_GL_H_
+#ifndef _MY_GL_H_
+#define _MY_GL_H_
 
 #include "pf.h"
 
-class My_gl{
+class My_gl:public Particle_filter{
 private:
-  double deg_to_rad(double deg);
+
 public:
   My_gl();
   ~My_gl();
   bool map_read();
-  void motion(control u_t);
+
   void draw_map();
   void draw_robot();
+  void draw_sensor();
+  void draw_particle();
+  void motion(control u_t);
+  void measure();
 };
 
 #endif

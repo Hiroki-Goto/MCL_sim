@@ -10,15 +10,15 @@
 control con;
 My_gl my_gl;
 
-void draw_robot(){
-
-}
-
 void display(){
 	glClear(GL_COLOR_BUFFER_BIT);
+
 	my_gl.draw_map();
 	my_gl.motion(con);
+	my_gl.measure();
+	my_gl.draw_sensor();
 	my_gl.draw_robot();
+	my_gl.draw_particle();
 	glFlush();
 	con.translation = con.rotate = 0;
 }
@@ -27,7 +27,7 @@ void resize(int w, int h){
 	glViewport(0, 0, w, h);
 	glLoadIdentity();
 	//画面サイズの変更
-	glOrtho(-20,300,-20,300, -1.0, 1.0);
+	glOrtho(-20,300,-250,30, -1.0, 1.0);
 }
 
 
