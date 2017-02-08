@@ -10,6 +10,7 @@
 robot_position *pf_x_t;
 
 double pf_t[MAX_PARTICLE][PARTICLE_ELEMENT];
+double hinan_pf[MAX_PARTICLE][PARTICLE_ELEMENT];
 double Map_pf[LINE][COLUMN];
 double pf_sensor_dis[MAX_PARTICLE][SENSOR_NUM];
 std::vector<Pf_Sensor> pf_laser;
@@ -127,7 +128,6 @@ void Particle_filter::draw_particle_pf(){
 }
 
 void Particle_filter::pf_sensor_measure(){
-
   double range;
   Pf_Sensor pf_laser_result;
   pf_laser.clear();
@@ -158,10 +158,91 @@ void Particle_filter::sensor_update(){
   //std::cout << robot_sensor_result << std::endl;
   for(int i=0;i<MAX_PARTICLE;i++){
     pf_t[i][W] = gause(robot_sensor_result, Z_ERROR,pf_laser[i].diss);
-    std::cout << pf_t[i][W];
     total_weight += pf_t[i][W];
   }
-  //std::cout << total_weight;
 
+  //正規化
+  for(int i=0; i<MAX_PARTICLE;i++){
+    pf_t[i][W] /= total_weight;
+  }
+  double a[4];
+  for(int i=0; i<MAX_PARTICLE;i++){
+    for(int j=0; j<MAX_PARTICLE;j++){
+        if((pf_t[j][W] >pf_t[i][W])){
+          //saisyo dekai
+        }else{
+          a[0] = pf_t[i][X];
+          a[1] = pf_t[i][Y];
+          a[2] = pf_t[i][THETA];
+          a[3] = pf_t[i][W];
 
+          pf_t[i][X] = pf_t[j][X];
+          pf_t[i][Y] = pf_t[j][Y];
+          pf_t[i][THETA] = pf_t[j][THETA];
+          pf_t[i][W] = pf_t[j][W];
+
+          pf_t[j][X] = a[0];
+          pf_t[j][Y] = a[1];
+          pf_t[j][THETA] = a[2];
+          pf_t[j][W] = a[3];
+        }
+    }
+  }
+
+  //hinan
+  for(int i=0;i<MAX_PARTICLE;i++){
+    hinan_pf[i][X] = pf_t[i][X];
+    hinan_pf[i][Y] = pf_t[i][Y];
+    hinan_pf[i][THETA] = pf_t[i][THETA];
+    hinan_pf[i][W] = 0;
+
+  }
+
+  double w_itiyou = 1 / MAX_PARTICLE;
+  int particle_count=0;
+  int select_patricle=9;
+  for(int i=0;i<7;i++){
+      for(int j =0; j<select_patricle;j++){
+        hinan_pf[particle_count][X] = pf_t[i][X];
+        hinan_pf[particle_count][Y] = pf_t[i][Y];
+        hinan_pf[particle_count][THETA] = pf_t[i][THETA];
+        hinan_pf[particle_count][W] = w_itiyou;
+        particle_count++;
+
+      }
+      select_patricle--;
+  }
+
+  for(int i = particle_count+1;i < MAX_PARTICLE+1;i++){
+    //std::cout << i << " ";
+    hinan_pf[i][X] = pf_t[i][X];
+    hinan_pf[i][Y] = pf_t[i][Y];
+    hinan_pf[i][THETA] = pf_t[i][THETA];
+    hinan_pf[i][W] = w_itiyou;
+  }
+
+/*  for(int i=0;i<MAX_PARTICLE;i++){
+    std::cout << hinan_pf[i][X] <<  " ";
+  }
+*/
+  for(int i=0;i<MAX_PARTICLE;i++){
+     pf_t[i][X]  = 0;
+     pf_t[i][X] =0;
+     pf_t[i][THETA] = 0;
+     pf_t[i][W] = 0;
+  }
+
+  for(int i=0;i<MAX_PARTICLE;i++){
+      pf_t[i][X]  = hinan_pf[i][X];
+      pf_t[i][Y] = hinan_pf[i][Y];
+      pf_t[i][THETA] = hinan_pf[i][THETA];
+      pf_t[i][W] = w_itiyou;
+  }
+
+  for(int i=0;i<MAX_PARTICLE;i++){
+      std::cout << pf_t[i][X] <<  " " << pf_t[i][Y] << std::endl;
+
+  }
+
+  draw_particle_pf();
 }

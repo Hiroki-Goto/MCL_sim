@@ -18,7 +18,6 @@ void display(){
 	my_gl.measure();
 	my_gl.draw_sensor();
 	my_gl.draw_robot();
-	my_gl.draw_particle();
 	glFlush();
 	con.translation = con.rotate = 0;
 }

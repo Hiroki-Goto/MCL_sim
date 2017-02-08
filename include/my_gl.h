@@ -13,11 +13,11 @@ public:
   bool map_read();
 
   void draw_map();
+  void motion(control u_t);
+  void measure();
   void draw_robot();
   void draw_sensor();
   void draw_particle();
-  void motion(control u_t);
-  void measure();
 };
 
 #endif
