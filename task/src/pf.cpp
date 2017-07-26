@@ -1,76 +1,69 @@
 #include "../include/pf.h"
+#include "../include/pf_amcl.h"
 #include "../include/param.h"
+
+#include <iostream>
 #include <stdlib.h>
 #include <math.h>
 
 
 Amcl::Amcl(){
-//時間の初期化
+    std::cout << "Initialized" << std::endl;
+    //時間の初期化を行う？
 }
 
 Amcl::~Amcl(){
-
+    std::cout << "Finshed" << std::endl;
 }
 
-//一様乱数を発生させる
-double Amcl::Uniform(){
-  return ((double)rand()+1.0)/((double)RAND_MAX+2.0);
+double Amcl::setUniform(double min_number, double max_number){
+    double number;
+    number = (max_number-min_number)*rand()/RAND_MAX-(max_number-min_number)/2;
+    return number;
 }
 
-//min〜maxまでの範囲で乱数を発生させる
-double Amcl::Select_Uniform(double min, double max){
-  double result;
-  result = (max-min)*rand()/RAND_MAX-(max-min)/2;
-  return result;
+
+double Amcl::gause(double average ,double sigma,double input){
+    double result;
+    result = 1 / (sqrt(2*PI)*sigma) * exp(-(input-average)*(input-average)/(2*sigma*sigma));
+    return result;
 }
 
-double Amcl::gause(double ave,double deviation,double x){
-  double result;
-  result = 1 / (sqrt(2*PI)*deviation) * exp(-(x-ave)*(x-ave)/(2*deviation*deviation));
-  return result;
+/*
+ *   ロボットの位置とパーティクルの初期化を行う
+ */
+void Amcl::pfInit(Robot *robot_t,ParticleSet *particle_set_t){
+    robot_t->x = INIT_X;
+    robot_t->y = INIT_Y;
+    robot_t->theta = INIT_THETA;
+
+    Particle particle;
+    particle_set_t->clear();
+    for(int i=0; i<PARTICLE_NUM; i++){
+        particle.x = INIT_X + setUniform(-INIT_POSITION_SIGMA,INIT_POSITION_SIGMA);
+        particle.y = INIT_Y + setUniform(-INIT_POSITION_SIGMA,INIT_POSITION_SIGMA);
+        particle.theta = INIT_THETA + (-INIT_ROTATE_SIGMA,INIT_ROTATE_SIGMA);
+        particle_set_t->push_back(particle);
+    }
 }
 
-double Amcl::deg_to_rad(double deg){
-  return deg / 180.0 * PI;
-}
+/*
+ *   サンプリング（動作予測）
+ *   引数：制御(Ut),ロボットの姿勢(x_t-1),パーティクルの姿勢(s_t-1)
+ *   戻り値:ロボットの姿勢(x'_t),パーティクルの姿勢(s'_t)
+ *   確率ロボティクスp-pを参照
+ */
 
-//各種の初期化を行う
-void Amcl::pf_init(robot_position_t_ *robot_position_t, pf_t_ *pf_t){
+/*
+ *   計測更新（重み付け）
+ *   引数：,ロボットの姿勢と計測(x'_t,Zt),パーティクルの姿勢,計測予測(s'_t,Z't)
+ *   戻り値:重み付けされた各パーティクル(s_t)
+ *   確率ロボティクスp-pを参照
+ */
 
-  //ロボットの位置の初期化
-  robot_position_t->x = 34;
-  robot_position_t->y = -210;
-  robot_position_t->theta = 90;
-
-  //パーティクルの初期化
-  for(int i=0; i<PARTICLE_NUM; i++ ){
-    pf_t->x = 34 + Select_Uniform(-INIT_POSITION_SIGMA, INIT_POSITION_SIGMA);
-    pf_t->y = -210 + Select_Uniform(-INIT_POSITION_SIGMA, INIT_POSITION_SIGMA);
-    pf_t->theta = 90 + Select_Uniform(-INIT_ROTATE_SIGMA, INIT_ROTATE_SIGMA);
-  }
-}
-
-//ロボットの位置から各種センサデータの計測を行う
-//センサの位置はロボットの中心点としている
-
-//各パーティクルの位置から計測予測を行う
-
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
-//             チームでやる場合は                //
-//            ここからのプログラムは               //
-//       別々のファイルにした方がいいと思います　　　　 //
-//              (競合防止のため)               //
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
-
-//オドメトリ動作モデルに従いパーティクルの更新を行う
-//今回はロボットとパーティクルの更新を一気にしている
-//詳しくは確率ロボティクスp120-p126を参照
-
-//計測モデルに従い，各パーティクルの重み付けを行う
-//今回計測モデルは正規分布にしているが，AMCLでの尤度場モデルにしてほしい
-//詳しくは確率ロボティクスp139-p146を参照
-
-//重み付けを行ったパーティクルを元にリサンプリングを行う
-//このプログラムでは（面倒なので）KLDサンプルは行っていない
-//リサンプリング方式もかなりテキトーなので各自で調べて実装してくだい
+/*
+ *   リサンプリング
+ *   引数：重み付けされたパーティクル
+ *   戻り値:リサンプリング後のパーティクル(s_t)
+ *   確率ロボティクスp-pを参照
+ */
