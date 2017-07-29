@@ -50,7 +50,7 @@ void GlDraw::drawMap(Map map){
 void GlDraw::drawRobotAndParticle(Robot *robot_t,ParticleSet *particle_set_t){
     //パーティクルの描画
     //ロボットを先に書くとパーティクルのせいで見えなくなるため
-    /*
+
     for(int i=0; i<particle_set_t->size(); i++){
         glBegin(GL_LINE_LOOP);
         glColor3d(1.0, 0.0, 0.0);
@@ -68,8 +68,14 @@ void GlDraw::drawRobotAndParticle(Robot *robot_t,ParticleSet *particle_set_t){
                 glVertex2f( x2+particle_set_t->at(i).x, y2+particle_set_t->at(i).y );
       	    glEnd();
     	}
+        int robotTheta = 5;    //姿勢を示すときの直線の長さ
+        glBegin(GL_LINES);
+            glVertex2f( particle_set_t->at(i).x, particle_set_t->at(i).y );
+            glVertex2f( particle_set_t->at(i).x+robotTheta*cos(degToRad(particle_set_t->at(i).theta)),
+                            particle_set_t->at(i).y+robotTheta*sin(degToRad(particle_set_t->at(i).theta)) );
+        glEnd();
     }
-    */
+
 
     //ロボットの描画
     glBegin(GL_LINE_LOOP);

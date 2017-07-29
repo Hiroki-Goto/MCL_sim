@@ -55,7 +55,9 @@ void display(){
     //地図からそれぞれ更新
     amcl.pfGetSensorData(map, &robot, &particle_set);
     //計測モデル
+    amcl.pfSensorUpdata(&robot, &particle_set);
     //リサンプリング
+    amcl.pfResampling(&robot, &particle_set);
     //ロボット，パーティクルの描画
     glDraw.drawRobotAndParticle(&robot, &particle_set);
     control_t.trance = control_t.rotate = 0;

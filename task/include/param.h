@@ -20,13 +20,18 @@
 #define SENSOR_RADIUS 1.5
 
 //センサ関連
-#define ODOM_TRANSE_SIGMA 0.1       //実際のロボットのオドメトリ誤差（直進）
+#define ODOM_TRANSE_SIGMA 0.3       //実際のロボットのオドメトリ誤差（直進）
 #define ODOM_ROTATE_SIGMA 0.3       //実際のロボットのオドメトリ誤差（回転）
-#define SENSOR_NUM 180
-#define MAX_RANGE 80
+#define SENSOR_NUM 180              //センサのビームの数
+#define MAX_RANGE 70                //センサのビームのレンジ
+#define SENSOE_ERROR 1.5
 
 //動作モデル関連
-#define ALPHA_1 1
-#define ALPHA_2 2
-#define ALPHA_3 3
-#define ALPHA_4 4
+#define ALPHA_1 0.3
+#define ALPHA_2 0.3
+#define ALPHA_3 0.4
+#define ALPHA_4 0.2
+#define SAMPLE 12
+
+#define RESAMPLE_POSITION_SIGMA 4.0
+#define RESAMPLE_ROTATE_SIGMA 4.0

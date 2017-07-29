@@ -12,6 +12,7 @@ struct SensorData{
 
 typedef struct Robot{
     double x, y, theta;
+    double totalWeight;
     std::vector<SensorData> robotSensorData;
 }Robot;
 
