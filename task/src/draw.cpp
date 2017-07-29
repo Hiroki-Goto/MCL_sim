@@ -48,28 +48,79 @@ void GlDraw::drawMap(Map map){
 }
 
 void GlDraw::drawRobotAndParticle(Robot *robot_t,ParticleSet *particle_set_t){
+    //パーティクルの描画
+    //ロボットを先に書くとパーティクルのせいで見えなくなるため
+    /*
+    for(int i=0; i<particle_set_t->size(); i++){
+        glBegin(GL_LINE_LOOP);
+        glColor3d(1.0, 0.0, 0.0);
+    	for(int th1=0; th1<360; th1++){
+    		double th2 = th1 + 10.0;
+    		double th1_rad = degToRad(th1);
+    		double th2_rad = degToRad(th2);
+
+    		double x1 = PARTICLE_RADIUS * cos(th1_rad);
+       	    double y1 = PARTICLE_RADIUS * sin(th1_rad);
+      	    double x2 = PARTICLE_RADIUS * cos(th2_rad);
+      	    double y2 = PARTICLE_RADIUS * sin(th2_rad);
+    		glBegin(GL_LINES);
+                glVertex2f( x1+particle_set_t->at(i).x ,y1+particle_set_t->at(i).y );
+                glVertex2f( x2+particle_set_t->at(i).x, y2+particle_set_t->at(i).y );
+      	    glEnd();
+    	}
+    }
+    */
+
     //ロボットの描画
     glBegin(GL_LINE_LOOP);
-	glColor3d(0.0, 1.0, 0.0);
-	for(int th1=0; th1<360; th1++){
-		double th2 = th1 + 10.0;
-		double th1_rad = degToRad(th1);
-		double th2_rad = degToRad(th2);
+    glColor3d(0.0, 1.0, 0.0);
+    for(int th1=0; th1<360; th1++){
+        double th2 = th1 + 10.0;
+        double th1_rad = degToRad(th1);
+        double th2_rad = degToRad(th2);
 
-		double x1 = ROBOT_RADIUS * cos(th1_rad);
-   	    double y1 = ROBOT_RADIUS * sin(th1_rad);
-  	    double x2 = ROBOT_RADIUS * cos(th2_rad);
-  	    double y2 = ROBOT_RADIUS * sin(th2_rad);
-		glBegin(GL_LINES);
+        double x1 = ROBOT_RADIUS * cos(th1_rad);
+        double y1 = ROBOT_RADIUS * sin(th1_rad);
+        double x2 = ROBOT_RADIUS * cos(th2_rad);
+        double y2 = ROBOT_RADIUS * sin(th2_rad);
+        glBegin(GL_LINES);
             glVertex2f( x1+robot_t->x, y1+robot_t->y );
             glVertex2f( x2+robot_t->x, y2+robot_t->y );
-  	    glEnd();
-	}
-    int robotTheta = 10;    //姿勢を示すときの直線の長さ
+        glEnd();
+    }
+    glEnd();
+    int robotTheta = 20;    //姿勢を示すときの直線の長さ
     glBegin(GL_LINES);
-		glVertex2f( robot_t->x, robot_t->y );
-		glVertex2f( robot_t->x+robotTheta*cos(degToRad(robot_t->theta)), robot_t->y+robotTheta*sin(degToRad(robot_t->theta)) );
-	glEnd();
+        glVertex2f( robot_t->x, robot_t->y );
+        glVertex2f( robot_t->x+robotTheta*cos(degToRad(robot_t->theta)), robot_t->y+robotTheta*sin(degToRad(robot_t->theta)) );
+    glEnd();
 
-    //パーティクルの描画
+    //ロボットのセンサの描画
+    glColor3d(1.0, 0.0, 0.0);
+    for(int i=0; i<SENSOR_NUM; i++){
+        double sensorAngleT = robot_t->theta - (INIT_THETA - robot_t->robotSensorData.at(i).angle );
+
+        /*
+        //距離を線として表現したいとき（オススメはしない）
+        glBegin(GL_LINES);
+            glVertex2f( robot_t->x, robot_t->y );
+            glVertex2f( robot_t->x + robot_t->robotSensorData.at(i).distance*cos(degToRad(sensorAngleT))
+                            , robot_t->y + robot_t->robotSensorData.at(i).distance*sin(degToRad(sensorAngleT)) );
+        glEnd();
+        */
+
+
+        glBegin(GL_POLYGON);
+        for(int th1=0; th1<360; th1++){
+            double th1_rad = degToRad(th1);
+            double x1 = SENSOR_RADIUS * cos(th1_rad);
+            double y1 = SENSOR_RADIUS * sin(th1_rad);
+            glVertex3f( x1 + robot_t->x+robot_t->robotSensorData.at(i).distance*cos(degToRad(sensorAngleT)),
+                            y1 + robot_t->y + robot_t->robotSensorData.at(i).distance*sin(degToRad(sensorAngleT))
+                                , 0.0);
+        }
+        glEnd();
+
+
+    }
 }

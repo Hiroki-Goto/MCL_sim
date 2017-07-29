@@ -15,8 +15,10 @@ Amcl amcl;
 Map map;
 GlDraw glDraw;
 
+
 Robot robot;
 ParticleSet particle_set;
+Control control_t;
 
 bool mapRead(){
     FILE *mapFile;
@@ -46,16 +48,18 @@ bool mapRead(){
 
 void display(){
     glClear(GL_COLOR_BUFFER_BIT);
-  //地図の描画
-  glDraw.drawMap(map);
-  //動作モデル
-  //地図からそれぞれ更新
-  //計測モデル
-  //リサンプリング
-  //ロボット，パーティクルの描画
+    //地図の描画
+    glDraw.drawMap(map);
+    //動作モデル
+    amcl.pfMotionUpdata(&control_t, &robot, &particle_set);
+    //地図からそれぞれ更新
+    amcl.pfGetSensorData(map, &robot, &particle_set);
+    //計測モデル
+    //リサンプリング
+    //ロボット，パーティクルの描画
     glDraw.drawRobotAndParticle(&robot, &particle_set);
-
-  glFlush();
+    control_t.trance = control_t.rotate = 0;
+    glFlush();
 }
 
 void resize(int w, int h){
@@ -74,23 +78,36 @@ void keyboard(unsigned char key, int x, int y){
 	  break;
 
     case 'w':   //前進
-      glutPostRedisplay();
-      std::cout << "up" << std::endl;
+        control_t.trance = 2;
+        glutPostRedisplay();
+        //std::cout << "up" << std::endl;
     break;
 
     case 'a':   //左回転
-      glutPostRedisplay();
-      std::cout << "left" << std::endl;
+        control_t.rotate = 2;
+        glutPostRedisplay();
+        //std::cout << "left" << std::endl;
     break;
 
     case 's':   //後退
-      glutPostRedisplay();
-      std::cout << "back" << std::endl;
+        control_t.trance = -2;
+        glutPostRedisplay();
+        //std::cout << "back" << std::endl;
     break;
 
     case 'd':   //右回転
-      glutPostRedisplay();
-      std::cout << "right" << std::endl;
+        control_t.rotate = -2;
+        glutPostRedisplay();
+        //std::cout << "right" << std::endl;
+    break;
+
+    case 'r':   //初期位置に戻す
+        amcl.pfInit(&robot, &particle_set);
+        glutPostRedisplay();
+        //std::cout << "Restart" << std::endl;
+    break;
+
+    default:
     break;
   }
 }
