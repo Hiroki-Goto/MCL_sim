@@ -9,7 +9,7 @@ private:
     double degToRad(double degree);
     double radToDeg(double radian);
     double pfMeasurementModel(double average ,double sigma, double input);
-    double gaussian(double sigma);
+    double sample(double sigma);
 
 public:
     Amcl();

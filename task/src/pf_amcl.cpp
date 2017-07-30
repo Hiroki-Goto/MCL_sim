@@ -41,8 +41,12 @@ double Amcl::pfMeasurementModel(double average ,double sigma,double input){
 }
 
 
-
-double Amcl::gaussian(double sigma){
+/*
+ * 中心極限定理の計算
+ * 参考サイト↓
+ * http://mathtrain.jp/centrallimit
+ */
+double Amcl::sample(double sigma){
     double result;
     for(int i=0; i<SAMPLE; i++){
         result += setUniform(-fabs(sigma),fabs(sigma));
@@ -90,10 +94,9 @@ void Amcl::pfInit(Robot *robot_t,ParticleSet *particle_set_t){
     }
 }
 
+
 /*
  *   サンプリング（動作予測）
- *   引数：制御(Ut),ロボットの姿勢(x_t-1),パーティクルの姿勢(s_t-1)
- *   戻り値:ロボットの姿勢(x'_t),パーティクルの姿勢(s'_t)
  *   確率ロボティクスp123のサンプリングを参照
  */
 void Amcl::pfMotionUpdata(Control *control_t, Robot *robot_t1, ParticleSet *particle_set_t1){
@@ -126,12 +129,12 @@ void Amcl::pfMotionUpdata(Control *control_t, Robot *robot_t1, ParticleSet *part
 
     for(int i=0; i<particle_set_t1->size(); i++){
 
-        deltaHatRotate1 = deltaRotate1 + gaussian(ALPHA_1*deltaRotate1*deltaRotate1 +
+        deltaHatRotate1 = deltaRotate1 + sample(ALPHA_1*deltaRotate1*deltaRotate1 +
                                                   ALPHA_2*deltaTrance*deltaTrance);
-        deltaHatTrance = deltaTrance + gaussian(ALPHA_3*deltaTrance*deltaTrance +
+        deltaHatTrance = deltaTrance + sample(ALPHA_3*deltaTrance*deltaTrance +
                                                 ALPHA_4*deltaRotate1*deltaRotate1 +
                                                 ALPHA_4*deltaRotate2*deltaRotate2);
-        deltaHatRotate2= deltaRotate2 + gaussian(ALPHA_1*deltaRotate2*deltaRotate2 +
+        deltaHatRotate2= deltaRotate2 + sample(ALPHA_1*deltaRotate2*deltaRotate2 +
                                                   ALPHA_2*deltaTrance*deltaTrance);
         if(control_t->trance < 0){
             deltaHatTrance *= -1;
@@ -146,10 +149,10 @@ void Amcl::pfMotionUpdata(Control *control_t, Robot *robot_t1, ParticleSet *part
 }
 
 /*
- *   計測更新（重み付け）
- *   引数：,ロボットの姿勢と計測(x'_t,Zt),パーティクルの姿勢,計測予測(s'_t,Z't)
- *   戻り値:重み付けされた各パーティクル(s_t)
- *   確率ロボティクスp-pを参照
+ * 計測更新（重み付け）
+ * 確率ロボティクスp-pを参照
+ *TODO レーザーの尤度場モデルに変更した方が本来はよいため
+ *      担当の人はそれに変更を行う
  */
 void Amcl::pfSensorUpdata(Robot *robot_t, ParticleSet *particle_set_t){
     double weight;
@@ -167,10 +170,10 @@ void Amcl::pfSensorUpdata(Robot *robot_t, ParticleSet *particle_set_t){
 }
 
 /*
- *   リサンプリング
- *   引数：重み付けされたパーティクル
- *   戻り値:リサンプリング後のパーティクル(s_t)
- *   確率ロボティクスp-pを参照
+ *  リサンプリング
+ *  今回のリサンプリング方式としてアンケート法を用いた
+ *  今回はパーティクル数を変動させないため，パーティクルが足らなかった場合，
+ *  ランダムパーティクルとしてロボットの周辺にパーティクルを巻いている
  */
 void Amcl::pfResampling(Robot *robot_t, ParticleSet *particle_set_t){
     double totalWeight;
@@ -214,9 +217,9 @@ void Amcl::pfResampling(Robot *robot_t, ParticleSet *particle_set_t){
     }
     if(totalParticleNum < PARTICLE_NUM){
         for(int i= totalParticleNum; i<PARTICLE_NUM; i++){
-            new_particle.x = robot_t->x + setUniform(-RESAMPLE_POSITION_SIGMA,RESAMPLE_POSITION_SIGMA);
-            new_particle.y = robot_t->y + setUniform(-RESAMPLE_POSITION_SIGMA,RESAMPLE_POSITION_SIGMA);
-            new_particle.theta = robot_t->theta + setUniform(-RESAMPLE_ROTATE_SIGMA,RESAMPLE_ROTATE_SIGMA);
+            new_particle.x = robot_t->x + setUniform(-INIT_POSITION_SIGMA/2,INIT_POSITION_SIGMA/2);
+            new_particle.y = robot_t->y + setUniform(-INIT_POSITION_SIGMA/2,INIT_POSITION_SIGMA/2);
+            new_particle.theta = robot_t->theta + setUniform(-INIT_ROTATE_SIGMA,INIT_ROTATE_SIGMA);
             new_particle.weight = particle_set_t->at(i).weight/robot_t->totalWeight;
             if(SENSOR_NUM == 1){
                 sensorData.angle = new_particle.theta;
@@ -270,9 +273,9 @@ void Amcl::pfGetSensorData(Map map,Robot *robot_t_ber,ParticleSet *particle_set_
             int sensorX = robot_t_ber->x +range*cos(degToRad(sensorAngleT));
             int sensorY = robot_t_ber->y +range*sin(degToRad(sensorAngleT));
 
-            if(map[-sensorY/MAP_GLID][sensorX/MAP_GLID] == 1){
+            if(map[-sensorY/MAP_GLID][sensorX/MAP_GLID] == 1 || map[-sensorY/MAP_GLID][sensorX/MAP_GLID] == 2){
                 //std::cout << range << std::endl;
-                robot_t_ber->robotSensorData.at(i).distance = range;
+                robot_t_ber->robotSensorData.at(i).distance = range + setUniform(-SENSOE_ERROR,SENSOE_ERROR);
                 break;
             }
             else{
@@ -288,6 +291,7 @@ void Amcl::pfGetSensorData(Map map,Robot *robot_t_ber,ParticleSet *particle_set_
                 int sensorX = particle_set_t_bar->at(i).x + range*cos(degToRad(sensorAngleT));
                 int sensorY = particle_set_t_bar->at(i).y + range*sin(degToRad(sensorAngleT));
 
+                //計測予測なので，ボールの存在は考慮しない
                 if(map[-sensorY/MAP_GLID][sensorX/MAP_GLID] == 1){
                     //std::cout << range << std::endl;
                     particle_set_t_bar->at(i).particleSensorData.at(j).distance = range;

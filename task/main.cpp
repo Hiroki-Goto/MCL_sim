@@ -22,7 +22,7 @@ Control control_t;
 
 bool mapRead(){
     FILE *mapFile;
-    int mapStatus;  //0：フリー，1：壁
+    int mapStatus;  //0：フリー，1：壁,2:ボール
 
     if((mapFile =fopen("../map_wall.txt","r")) == NULL){
         std::cout << "Doesn't exist map file" << std::endl;
@@ -67,7 +67,7 @@ void display(){
 void resize(int w, int h){
 	glViewport(0, 0, w, h);
 	glLoadIdentity();
-	glOrtho(-20,300,-250,30, -1.0, 1.0);   //画面サイズの変更
+	glOrtho(-20,600,-500,30, -1.0, 1.0);   //画面サイズの変更
 }
 
 
@@ -80,25 +80,25 @@ void keyboard(unsigned char key, int x, int y){
 	  break;
 
     case 'w':   //前進
-        control_t.trance = 2;
+        control_t.trance = CONTROL_TRANCE;
         glutPostRedisplay();
         //std::cout << "up" << std::endl;
     break;
 
     case 'a':   //左回転
-        control_t.rotate = 2;
+        control_t.rotate = CONTROL_ROTATE;
         glutPostRedisplay();
         //std::cout << "left" << std::endl;
     break;
 
     case 's':   //後退
-        control_t.trance = -2;
+        control_t.trance = -CONTROL_TRANCE;
         glutPostRedisplay();
         //std::cout << "back" << std::endl;
     break;
 
     case 'd':   //右回転
-        control_t.rotate = -2;
+        control_t.rotate = -CONTROL_ROTATE;
         glutPostRedisplay();
         //std::cout << "right" << std::endl;
     break;

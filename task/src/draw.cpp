@@ -32,7 +32,17 @@ void GlDraw::drawMap(Map map){
 				glVertex2d((j+1)*MAP_GLID, -(i+1)*MAP_GLID);
 				glVertex2d((j+1)*MAP_GLID, -(i)*MAP_GLID);
 				glEnd();
-			}else{
+			}
+            else if(map[i][j] == 2){
+                glBegin(GL_POLYGON);
+                glColor3d(0.0, 0.0, 1.0);
+                glVertex2d((j)*MAP_GLID, -(i)*MAP_GLID);
+                glVertex2d((j)*MAP_GLID, -(i+1)*MAP_GLID);
+                glVertex2d((j+1)*MAP_GLID, -(i+1)*MAP_GLID);
+                glVertex2d((j+1)*MAP_GLID, -(i)*MAP_GLID);
+                glEnd();
+            }
+            else {
 				//glBegin(GL_POLYGON);
 				glBegin(GL_LINE_LOOP);
 				glColor3d(1.0, 1.0, 1.0);
@@ -119,8 +129,8 @@ void GlDraw::drawRobotAndParticle(Robot *robot_t,ParticleSet *particle_set_t){
         glBegin(GL_POLYGON);
         for(int th1=0; th1<360; th1++){
             double th1_rad = degToRad(th1);
-            double x1 = SENSOR_RADIUS * cos(th1_rad);
-            double y1 = SENSOR_RADIUS * sin(th1_rad);
+            double x1 = SCAN_RADIUS * cos(th1_rad);
+            double y1 = SCAN_RADIUS * sin(th1_rad);
             glVertex3f( x1 + robot_t->x+robot_t->robotSensorData.at(i).distance*cos(degToRad(sensorAngleT)),
                             y1 + robot_t->y + robot_t->robotSensorData.at(i).distance*sin(degToRad(sensorAngleT))
                                 , 0.0);
