@@ -13,7 +13,7 @@
 //地図の大きさは25分の１サイズになっている
 #define MAP_LINE 98
 #define MAP_COLUMN 85
-#define MAP_GLID 5                  //地図1セルあたりの解像度[cm]
+#define MAP_GLID 5                  //地図1セルあたりの解像度[mm]
 
 //描画関連
 #define ROBOT_RADIUS 10
@@ -35,7 +35,7 @@
 #define ALPHA_3 0.4
 #define ALPHA_4 0.2
 #define SAMPLE 12                   //中心極限定理で使用するサンプル数
-#define CONTROL_TRANCE 2
+#define CONTROL_TRANCE 4
 #define CONTROL_ROTATE 2
 
 #define RESAMPLE_POSITION_SIGMA 8.0
