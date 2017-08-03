@@ -42,16 +42,11 @@ double Amcl::pfMeasurementModel(double average ,double sigma,double input){
 
 
 /*
- * 中心極限定理の計算
- * 参考サイト↓
- * http://mathtrain.jp/centrallimit
+ * 動作モデルにあるsample()の計算
+ * 引数の値からランダムに1つ抽出するにすること
  */
 double Amcl::sample(double sigma){
     double result;
-    for(int i=0; i<SAMPLE; i++){
-        result += setUniform(-fabs(sigma),fabs(sigma));
-    }
-    result /= SAMPLE;
     return result;
 }
 
@@ -97,21 +92,14 @@ void Amcl::pfInit(Robot *robot_t,ParticleSet *particle_set_t){
 
 /*
  *   サンプリング（動作予測）
- *   確率ロボティクスp123のサンプリングを参照
  */
 void Amcl::pfMotionUpdata(Control *control_t, Robot *robot_t1, ParticleSet *particle_set_t1){
 
-    //引数では
     double robotHatX,robotHatY,robotHatTheta;
-    double deltaTrance,deltaRotate1,deltaRotate2;
-    double deltaHatRotate1,deltaHatTrance,deltaHatRotate2;
-    double deltaRotate1Noise,deltaRotate2Noise;
-
-    //control_t->trance += setUniform(-ODOM_TRANSE_SIGMA,ODOM_TRANSE_SIGMA);
-    //control_t->rotate += setUniform(-ODOM_ROTATE_SIGMA,ODOM_ROTATE_SIGMA);
 
     //制御による推定値の計算
     robotHatTheta = robot_t1->theta + control_t->rotate;
+    //[0,π]の範囲にするため
     if(robotHatTheta >= 360){
         robotHatTheta -= 360;
     }else if(robotHatTheta < -360){
@@ -123,141 +111,25 @@ void Amcl::pfMotionUpdata(Control *control_t, Robot *robot_t1, ParticleSet *part
     //推定値からdelta_rotate1,delta_trance,delta_rotate1の計算
     //確率ロボティクスp124の2行目〜4行目
 
-    deltaRotate1 = atan2(robotHatY-robot_t1->y, robotHatX-robot_t1->x );
-    deltaTrance = hypot(robotHatX-robot_t1->x, robotHatY-robot_t1->y);
-    deltaRotate2 = degToRad(robotHatTheta - robot_t1->theta)- deltaRotate1;
 
-    for(int i=0; i<particle_set_t1->size(); i++){
-
-        deltaHatRotate1 = deltaRotate1 + sample(ALPHA_1*deltaRotate1*deltaRotate1 +
-                                                  ALPHA_2*deltaTrance*deltaTrance);
-        deltaHatTrance = deltaTrance + sample(ALPHA_3*deltaTrance*deltaTrance +
-                                                ALPHA_4*deltaRotate1*deltaRotate1 +
-                                                ALPHA_4*deltaRotate2*deltaRotate2);
-        deltaHatRotate2= deltaRotate2 + sample(ALPHA_1*deltaRotate2*deltaRotate2 +
-                                                  ALPHA_2*deltaTrance*deltaTrance);
-        if(control_t->trance < 0){
-            deltaHatTrance *= -1;
-        }
-        particle_set_t1->at(i).x += (deltaHatTrance)*(cos(degToRad(particle_set_t1->at(i).theta)));
-        particle_set_t1->at(i).y += (deltaHatTrance)*(sin(degToRad(particle_set_t1->at(i).theta)));
-        particle_set_t1->at(i).theta += radToDeg(deltaRotate1+deltaRotate2);
-    }
+    //ロボットの位置を代入
     robot_t1->x = robotHatX;
     robot_t1->y = robotHatY;
     robot_t1->theta = robotHatTheta;
+
 }
 
 /*
  * 計測更新（重み付け）
- * 確率ロボティクスp-pを参照
- *TODO レーザーの尤度場モデルに変更した方が本来はよいため
- *      担当の人はそれに変更を行う
  */
 void Amcl::pfSensorUpdata(Robot *robot_t, ParticleSet *particle_set_t){
-    double weight;
-    double total;
-    for(int i=0;i<particle_set_t->size(); i++){
-        for(int j=0; j<SENSOR_NUM;j++){
-            weight += pfMeasurementModel(robot_t->robotSensorData.at(j).distance, SENSOE_ERROR,
-                                            particle_set_t->at(i).particleSensorData.at(j).distance);
-        }
-        particle_set_t->at(i).weight = weight/SENSOR_NUM;
-        total += weight/SENSOR_NUM;
-        weight = 0;
-    }
-    robot_t->totalWeight = total;
+
 }
 
 /*
  *  リサンプリング
- *  今回のリサンプリング方式としてアンケート法を用いた
- *  今回はパーティクル数を変動させないため，パーティクルが足らなかった場合，
- *  ランダムパーティクルとしてロボットの周辺にパーティクルを巻いている
  */
 void Amcl::pfResampling(Robot *robot_t, ParticleSet *particle_set_t){
-    double totalWeight;
-    int particleNum=0;
-    int totalParticleNum=0;
-    bool particleFullTriger=false;
-    Particle new_particle;
-    ParticleSet new_sample;
-    SensorData sensorData;
-    new_sample.clear();
-    for(int i=0; i<particle_set_t->size(); i++){
-         particleNum = particle_set_t->at(i).weight/robot_t->totalWeight* PARTICLE_NUM;
-         for(int j=0; j<particleNum; j++){
-             new_particle.x = particle_set_t->at(i).x + setUniform(-RESAMPLE_POSITION_SIGMA,RESAMPLE_POSITION_SIGMA);
-             new_particle.y = particle_set_t->at(i).y + setUniform(-RESAMPLE_POSITION_SIGMA,RESAMPLE_POSITION_SIGMA);
-             new_particle.theta = particle_set_t->at(i).theta + setUniform(-RESAMPLE_ROTATE_SIGMA,RESAMPLE_ROTATE_SIGMA);
-             new_particle.weight = particle_set_t->at(i).weight/robot_t->totalWeight;
-             if(SENSOR_NUM == 1){
-                 sensorData.angle = new_particle.theta;
-                 new_particle.particleSensorData.push_back(sensorData);
-             }
-             else{
-                 double angle = 0;
-                 for(int i=0; i<SENSOR_NUM; i++){
-                     sensorData.angle = angle;
-                     angle += (180/(SENSOR_NUM-1));
-                     new_particle.particleSensorData.push_back(sensorData);
-                 }
-             }
-             totalParticleNum++;
-             new_sample.push_back(new_particle);
-             if(totalParticleNum >= PARTICLE_NUM){
-                 particleFullTriger = true;
-                break;
-            }
-         }
-         if(particleFullTriger){
-             particleFullTriger = false;
-             break;
-        }
-    }
-    if(totalParticleNum < PARTICLE_NUM){
-        for(int i= totalParticleNum; i<PARTICLE_NUM; i++){
-            new_particle.x = robot_t->x + setUniform(-INIT_POSITION_SIGMA/2,INIT_POSITION_SIGMA/2);
-            new_particle.y = robot_t->y + setUniform(-INIT_POSITION_SIGMA/2,INIT_POSITION_SIGMA/2);
-            new_particle.theta = robot_t->theta + setUniform(-INIT_ROTATE_SIGMA,INIT_ROTATE_SIGMA);
-            new_particle.weight = particle_set_t->at(i).weight/robot_t->totalWeight;
-            if(SENSOR_NUM == 1){
-                sensorData.angle = new_particle.theta;
-                new_particle.particleSensorData.push_back(sensorData);
-            }
-            else{
-                double angle = 0;
-                for(int i=0; i<SENSOR_NUM; i++){
-                    sensorData.angle = angle;
-                    angle += (180/(SENSOR_NUM-1));
-                    new_particle.particleSensorData.push_back(sensorData);
-                }
-            }
-            new_sample.push_back(new_particle);
-            totalParticleNum++;
-        }
-    }
-    particle_set_t->clear();
-    for(int i=0; i<PARTICLE_NUM; i++){
-        new_particle.x = new_sample.at(i).x;
-        new_particle.y = new_sample.at(i).y;
-        new_particle.theta = new_sample.at(i).theta;
-        new_particle.weight = new_sample.at(i).weight;
-        if(SENSOR_NUM == 1){
-            sensorData.angle = new_particle.theta;
-            new_particle.particleSensorData.push_back(sensorData);
-        }
-        else{
-            double angle = 0;
-            for(int i=0; i<SENSOR_NUM; i++){
-                sensorData.angle = angle;
-                angle += (180/(SENSOR_NUM-1));
-                new_particle.particleSensorData.push_back(sensorData);
-            }
-        }
-        particle_set_t->push_back(new_particle);
-    }
-    new_sample.clear();
 }
 
 /*
